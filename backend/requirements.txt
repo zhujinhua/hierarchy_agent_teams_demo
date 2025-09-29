@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+langgraph>=0.1
+langchain
+langchain_openai
+langchain_community
+langchain_tavily
+langchain_experimental
+pydantic
+python-dotenv
+aiofiles
+dashscope
+websockets
