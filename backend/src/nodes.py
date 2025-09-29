@@ -1,10 +1,5 @@
-from langchain_community.embeddings import DashScopeEmbeddings
-from langchain_community.vectorstores import Chroma
-
-from prompts import rag_chain
 from vectorstore import get_or_create_vectorstore
 
-# todo global
 vectorstore, retriever = get_or_create_vectorstore(
     persist_dir="data/chroma_db",
     collection_name="rag-chroma"
@@ -20,11 +15,13 @@ def retrieve(state):
     return {"documents": documents, "question": question}
 
 
-def generate(state):
+def generate(llm, state):
     """Generate answer using RAG chain"""
+    from prompts import get_rag_chain
     print("---GENERATE---")
     question = state['question']
     documents = state["documents"]
+    rag_chain = get_rag_chain(llm)
 
     def format_docs(docs):
         return "\n\n".join(doc.page_content for doc in docs)
@@ -34,14 +31,14 @@ def generate(state):
     return {"documents": documents, "question": question, "generation": generation}
 
 
-def grade_documents(state):
+def grade_documents(llm, state):
     """Filter relevant documents"""
-    from prompts import retrieval_grader
+    from prompts import get_retrieval_grader
 
     print("---CHECK DOCUMENT RELEVANCE TO QUESTION---")
     question = state["question"]
     documents = state["documents"]
-
+    retrieval_grader = get_retrieval_grader(llm)
     filtered_docs = []
     for d in documents:
         score = retrieval_grader.invoke({"question": question, "document": d.page_content})
@@ -53,50 +50,11 @@ def grade_documents(state):
     return {"documents": filtered_docs, "question": question}
 
 
-def transform_query(state):
+def transform_query(llm, state):
     """Rewrite query for better retrieval"""
-    from prompts import question_rewriter
+    from prompts import get_rewrite_grader
 
     print("---TRANSFORM QUERY---")
+    question_rewriter = get_rewrite_grader(llm)
     better_question = question_rewriter.invoke({"question": state["question"]})
     return {"documents": state["documents"], "question": better_question}
-
-
-def decide_to_generate(state):
-    """Decide whether to generate or rephrase query"""
-    print("---ASSESS GRADED DOCUMENTS---")
-    if not state["documents"]:
-        print("---DECISION: TRANSFORM QUERY---")
-        return "transform_query"
-    print("---DECISION: GENERATE---")
-    return "generate"
-
-
-# todo not use
-def grade_generation_v_documents_and_question(state):
-    """Check if generation is grounded and answers question"""
-    from prompts import hallucination_grader, answer_grader
-
-    print("---CHECK HALLUCINATIONS---")
-    question = state["question"]
-    documents = state["documents"]
-    generation = state["generation"]
-
-    hallucination_score = hallucination_grader.invoke({
-        "documents": documents,
-        "generation": generation
-    })
-
-    if hallucination_score.binary_score == "yes":
-        print("---DECISION: GENERATION IS GROUNDED---")
-        answer_score = answer_grader.invoke({
-            "question": question,
-            "generation": generation
-        })
-        if answer_score.binary_score == "yes":
-            print("---DECISION: GENERATION ADDRESSES QUESTION---")
-            return "useful"
-        print("---DECISION: GENERATION DOES NOT ADDRESS QUESTION---")
-        return "not useful"
-    print("---DECISION: GENERATION NOT GROUNDED---")
-    return "not supported"

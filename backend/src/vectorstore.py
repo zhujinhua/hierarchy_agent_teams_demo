@@ -1,15 +1,12 @@
-### Build or Load Vector Index for RAG
-
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import WebBaseLoader
-from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings
-from langchain_community.embeddings import DashScopeEmbeddings
 import os
 from dotenv import load_dotenv
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.document_loaders import WebBaseLoader
+from langchain_community.embeddings import DashScopeEmbeddings
+from langchain_community.vectorstores import Chroma
 
 load_dotenv()
-
+embd = DashScopeEmbeddings(model="text-embedding-v4")
 
 def get_or_create_vectorstore(persist_dir: str, collection_name: str):
     """
@@ -24,7 +21,6 @@ def get_or_create_vectorstore(persist_dir: str, collection_name: str):
         Chroma vector store instance
         Retriever object for querying
     """
-    embd = DashScopeEmbeddings(model="text-embedding-v4")
     # Check if vector store already exists
     if os.path.exists(os.path.join(persist_dir, "chroma.sqlite3")):
         print(f"Loading existing vector store from {persist_dir}")

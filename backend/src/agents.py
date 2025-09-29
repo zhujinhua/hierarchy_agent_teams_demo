@@ -45,9 +45,10 @@ def make_supervisor_node(
     def supervisor_node(state: State) -> Command[Literal[*members, "__end__"]]:
         """An LLM-based router node for managing workers."""
         state = state or {"messages": []}
-        # messages = [{"role": "system", "content": prompt}] + [state["messages"][-1]]
-        messages = [{"role": "system", "content": prompt}] + state["messages"]
-        response = llm.with_structured_output(Router).invoke(messages)
+        messages = [{"role": "system", "content": prompt}] + [state["messages"][-1]]
+        # messages = [{"role": "system", "content": prompt}] + state["messages"]
+        response = llm.with_structured_output(Router).invoke(messages) \
+                    or llm.with_structured_output(Router).invoke([messages[-1]])
         goto = response["next"] if response else "FINISH"
         print(f"[Supervisor] Decided to go to: {goto}")
         if goto == "FINISH":
@@ -127,7 +128,7 @@ def create_adaptive_rag_team(llm: BaseChatModel):
         )
 
     def grade_documents_node(state: State) -> Command[Literal["supervisor"]]:
-        result = grade_documents(state)
+        result = grade_documents(llm, state)
         docs_txt = "\n\n".join([d.page_content for d in result["documents"]])
         return Command(
             update={"messages": [HumanMessage(content=f"Relevant docs after grading:\n{docs_txt}",
@@ -137,7 +138,7 @@ def create_adaptive_rag_team(llm: BaseChatModel):
         )
 
     def transform_query_node(state: State) -> Command[Literal["supervisor"]]:
-        result = transform_query(state)
+        result = transform_query(llm, state)
         return Command(
             update={"messages": [HumanMessage(content="Transformed query", name="transform_query")],
                     "documents": result["documents"], "question": result["question"]},
@@ -145,11 +146,9 @@ def create_adaptive_rag_team(llm: BaseChatModel):
         )
 
     def generate_node(state: State) -> Command[Literal["supervisor"]]:
-        result = generate(state)
+        result = generate(llm, state)
         return Command(
-            update={"messages": [HumanMessage(content=result["generation"], name="generate")],
-                    "documents": result["documents"], "question": result["question"],
-                    "generation": result["generation"]},
+            update={"messages": [HumanMessage(content=result["generation"], name="generate")]},
             goto="supervisor"
         )
 

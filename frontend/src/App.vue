@@ -9,15 +9,15 @@
       <!-- Chat Messages Area -->
       <div ref="chatBox" class="chat-messages">
         <div
-          v-for="(m, i) in filteredMessages"
-          :key="i"
-          class="message-row"
-          :class="m.role === 'user' ? 'message-row--user' : 'message-row--assistant'"
+            v-for="(m, i) in filteredMessages"
+            :key="i"
+            class="message-row"
+            :class="m.role === 'user' ? 'message-row--user' : 'message-row--assistant'"
         >
           <div
-            class="message-bubble"
-            :class="m.role === 'user' ? 'message-bubble--user' : 'message-bubble--assistant'"
-            v-html="formatMessage(m.content)"
+              class="message-bubble"
+              :class="m.role === 'user' ? 'message-bubble--user' : 'message-bubble--assistant'"
+              v-html="formatMessage(m.content)"
           >
           </div>
         </div>
@@ -26,17 +26,17 @@
       <!-- Input Area -->
       <div class="input-container">
         <textarea
-          v-model="prompt"
-          rows="1"
-          class="input-field"
-          placeholder="Ask anything"
-          :disabled="streaming"
-          @keydown.enter.exact.prevent="start"
+            v-model="prompt"
+            rows="1"
+            class="input-field"
+            placeholder="Ask anything"
+            :disabled="streaming"
+            @keydown.enter.exact.prevent="start"
         ></textarea>
         <button
-          @click="start"
-          :disabled="streaming || !prompt.trim()"
-          class="send-btn"
+            @click="start"
+            :disabled="streaming || !prompt.trim()"
+            class="send-btn"
         >
           {{ streaming ? "Streaming..." : "Send" }}
         </button>
@@ -46,9 +46,9 @@
 </template>
 
 <script>
-import { ref, nextTick, watch, computed } from "vue";
+import {ref, nextTick, watch, computed} from "vue";
 // Fixed import syntax for marked (uses named export)
-import { marked } from "marked";
+import {marked} from "marked";
 
 export default {
   setup() {
@@ -126,7 +126,7 @@ export default {
       ws.onopen = () => {
         console.log("WebSocket connection established");
         try {
-          const payload = JSON.stringify({ prompt: userPrompt });
+          const payload = JSON.stringify({prompt: userPrompt});
           console.log(`Sending payload: ${payload.substring(0, 100)}${payload.length > 100 ? '...' : ''}`);
           ws.send(payload);
         } catch (error) {
@@ -207,7 +207,7 @@ export default {
       }
     };
 
-    return { prompt, filteredMessages, streaming, start, chatBox, formatMessage };
+    return {prompt, filteredMessages, streaming, start, chatBox, formatMessage};
   },
 };
 </script>

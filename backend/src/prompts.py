@@ -8,17 +8,13 @@ from langchain_core.prompts import ChatPromptTemplate
 from models import GradeDocuments, GradeHallucinations, GradeAnswer
 
 load_dotenv()
-# Initialize core components
-# todo extract the llm
-llm = ChatTongyi(model="qwen-plus")
-embd = DashScopeEmbeddings(model="text-embedding-v4")
 
 # Prompt templates
 root_supervisor_prompt = (
     "You are the root supervisor. You manage high-level teams: {members}."
+    "The 'adaptive_rag_team' is best for answering questions grounded in agents, prompt engineering, and adversarial attacks."
     "The 'research_team' is best for general web search and browsing tasks."
     "The 'writing_team' is best for outlining, analysis, and content creation tasks."
-    "The 'adaptive_rag_team' is best for answering questions grounded in agents, prompt engineering, and adversarial attacks."
     "Given the current state and user request, respond with the worker to act next. Each worker will perform a task,"
     "and respond with their results. When finished, respond with FINISH. Remember return **strict JSON only**."
 )
@@ -51,21 +47,27 @@ re_write_prompt = ChatPromptTemplate.from_messages([
 rag_supervisor_prompt = (
     "You are the Adaptive RAG team supervisor. You manage these workers: {members}. "
     "Route the task through the RAG pipeline to ensure retrieval, grading, and generation. "
-    "Always begin with retrieval, then proceed to grading or query rewriting, and finish with generation. "
-    "Stop when you are confident a useful grounded answer is produced by generation worker. "
+    "Always begin with retrieval, then proceed to grading or query rewriting, and finish with generate worker. "
+    "Stop when you are confident a useful grounded answer is produced by the generate worker. "
     "When done, respond with FINISH. Remember return **strict JSON only**, eg. {{ 'next': 'FINISH' }}"
 )
+
 outline_prompt = ("You can read documents and create outlines for the document writer. "
                   "Don't ask follow-up questions.")
 writer_prompt = ("You can read, write and edit documents based on note-taker's outlines. "
                  "Don't ask follow-up questions.")
 
-# Chains
-retrieval_grader = grade_prompt | llm.with_structured_output(GradeDocuments)
-hallucination_grader = hallucination_prompt | llm.with_structured_output(GradeHallucinations)
-answer_grader = answer_prompt | llm.with_structured_output(GradeAnswer)
-question_rewriter = re_write_prompt | llm | StrOutputParser()
 
-# RAG chain
-rag_prompt = hub.pull("rlm/rag-prompt")
-rag_chain = rag_prompt | llm | StrOutputParser()
+# Chains
+def get_retrieval_grader(llm):
+    return grade_prompt | llm.with_structured_output(GradeDocuments)
+
+
+def get_rewrite_grader(llm):
+    return re_write_prompt | llm | StrOutputParser()
+
+
+def get_rag_chain(llm):
+    # RAG chain
+    rag_prompt = hub.pull("rlm/rag-prompt")
+    return rag_prompt | llm | StrOutputParser()
